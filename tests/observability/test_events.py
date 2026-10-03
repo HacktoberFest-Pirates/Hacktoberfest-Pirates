@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from backend.observability.schemas import EventType, SecurityEvent
+from app.observability.schemas import EventType, SecurityEvent
 
 
 def test_valid_event():

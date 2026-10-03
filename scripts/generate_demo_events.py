@@ -8,8 +8,8 @@ from pathlib import Path
 os.environ.setdefault("OBSERVABILITY_LOG_LEVEL", "CRITICAL")  # keep demo output quiet
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from backend.observability.demo import generate_demo_data  # noqa: E402
-from backend.observability.service import get_service  # noqa: E402
+from app.observability.demo import generate_demo_data  # noqa: E402
+from app.observability.service import get_service  # noqa: E402
 
 
 def main() -> None:

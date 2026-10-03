@@ -14,7 +14,8 @@ from __future__ import annotations
 import logging
 import re
 
-from app.observability.events import EventType, get_event_emitter
+from app.observability.schemas import EventType
+from app.observability.service import observability
 from app.security.interfaces import Decision, SecurityModule, SecurityResult
 
 logger = logging.getLogger(__name__)
@@ -55,18 +56,8 @@ class PromptInjectionStubDetector(SecurityModule):
                 )
 
                 # Emit audit event
-                emitter = get_event_emitter()
-                emitter.create_and_emit(
-                    request_id=request_id,
-                    event_type=EventType.PROMPT_INJECTION_DETECTED,
-                    user_id=user_id,
-                    decision="flag",
-                    risk_level="high",
-                    metadata={
-                        "rule": "instruction_override",
-                        "pattern": pattern.pattern,
-                    },
-                )
+                
+                observability.record_event(EventType.PROMPT_INJECTION_DETECTED, request_id, source=self.name, severity="high", metadata=metadata)
 
                 # Register detection in shared context for PolicyEngine
                 context.setdefault("detections", []).append({
@@ -90,3 +81,5 @@ class PromptInjectionStubDetector(SecurityModule):
             module_name=self.name,
             reason="No prompt injection patterns detected.",
         )
+
+

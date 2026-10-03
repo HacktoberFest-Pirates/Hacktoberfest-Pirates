@@ -167,7 +167,7 @@ class ObservabilityService:
         return self.repo.purge_older_than(self.settings.retention_days)
 
 
-# ---------- lazy module-level handle:  from backend.observability.service import observability ----------
+# ---------- lazy module-level handle:  from app.observability.service import observability ----------
 _service: Optional[ObservabilityService] = None
 
 

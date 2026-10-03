@@ -1,7 +1,7 @@
 from datetime import timedelta
 
-from backend.observability.repository import QueryFilters
-from backend.observability.schemas import utcnow
+from app.observability.repository import QueryFilters
+from app.observability.schemas import utcnow
 
 
 def test_save_and_retrieve_event(svc):

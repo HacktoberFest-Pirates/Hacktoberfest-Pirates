@@ -19,7 +19,7 @@ from fastapi.responses import JSONResponse
 
 from app.api.routes import init_routes, router
 from app.config.settings import get_settings
-from app.privacy.placeholder import PlaceholderDetector
+from app.privacy.adapter import PrivacySecurityModule
 from app.proxy.pipeline import SecurityPipeline
 from app.proxy.router import LLMRouter
 from app.proxy.upstream import (
@@ -102,7 +102,7 @@ def create_app() -> FastAPI:
     # ── Security Pipeline ────────────────────────────────────
     detectors: list = []
     if settings.ENABLE_STUB_DETECTORS:
-        detectors.append(PlaceholderDetector())          # Stub PII/secret redaction
+        detectors.append(PrivacySecurityModule())          # Privacy Engine for PII/secret redaction
         detectors.append(PromptInjectionStubDetector())  # Stub injection detector
 
     # Teammates' modules (set EXTRA_SECURITY_MODULES, no core edits needed)
@@ -166,7 +166,7 @@ def create_app() -> FastAPI:
 
     # ── Wire routes ──────────────────────────────────────────
     init_routes(pipeline, llm_router, privacy_engine)
-    application.include_router(router)
+    application.include_router(router); from app.observability.api import router as obs_router; application.include_router(obs_router)
 
     logger.info(
         "%s v%s ready — provider=%s",
@@ -179,3 +179,4 @@ def create_app() -> FastAPI:
 
 
 app = create_app()
+

@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from backend.observability.api import create_app
+from app.observability.api import create_app
 from tests.observability.test_metrics import seed
 
 

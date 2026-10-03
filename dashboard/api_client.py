@@ -6,7 +6,7 @@ from typing import Any, Optional
 
 import requests
 
-BASE_URL = os.getenv("OBSERVABILITY_API_URL", "http://localhost:8001").rstrip("/")
+BASE_URL = os.getenv("OBSERVABILITY_API_URL", "http://localhost:8000").rstrip("/")
 TIMEOUT = 10
 
 
@@ -31,3 +31,4 @@ def security(p: dict) -> dict: return _get("/security", p)
 def requests_list(p: dict) -> list[dict]: return _get("/requests", {**p, "limit": 1000})["items"]
 def events(p: dict) -> list[dict]: return _get("/events", {**p, "limit": 1000})["items"]
 def request_detail(request_id: str) -> dict: return _get(f"/requests/{request_id}")
+

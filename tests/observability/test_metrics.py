@@ -1,6 +1,6 @@
 import pytest
 
-from backend.observability.metrics import percentile
+from app.observability.metrics import percentile
 
 
 def seed(svc):

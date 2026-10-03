@@ -1,7 +1,7 @@
 import json
 import sqlite3
 
-from backend.observability.sanitize import sanitize_metadata, scrub_text
+from app.observability.sanitize import sanitize_metadata, scrub_text
 
 SECRETS = ["rahul@example.test", "+91 98765 43210", "sk-abcdef1234567890ABCDEF", "4111 1111 1111 1111"]
 

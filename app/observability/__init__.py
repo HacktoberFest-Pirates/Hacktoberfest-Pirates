@@ -1,3 +1,6 @@
-from app.observability.events import SecurityEvent, EventEmitter, get_event_emitter
+"""AI Security Proxy - observability & audit module (Person 3)."""
+from .schemas import EventType, LLMCall, SecurityEvent, Severity, new_request_id
+from .service import ObservabilityService, get_service, observability, set_service
 
-__all__ = ["SecurityEvent", "EventEmitter", "get_event_emitter"]
+__all__ = ["EventType", "LLMCall", "SecurityEvent", "Severity", "new_request_id",
+           "ObservabilityService", "get_service", "observability", "set_service"]

@@ -19,7 +19,8 @@ from app.api.schemas import (
     Usage,
 )
 from app.config.settings import get_settings
-from app.observability.events import EventType, get_event_emitter
+from app.observability.schemas import EventType
+from app.observability.service import observability
 from app.proxy.pipeline import SecurityPipeline
 from app.proxy.router import LLMRouter
 from app.security.interfaces import Decision
@@ -89,23 +90,23 @@ async def ready() -> ReadyResponse:
 @router.get("/v1/stats")
 async def stats() -> dict:
     """Return aggregate security statistics for the dashboard."""
-    emitter = get_event_emitter()
-    return emitter.get_stats()
+    observability.start_request(request_id)
+    return observability.summary()
 
 
 @router.get("/v1/events/{request_id}")
 async def get_events(request_id: str) -> list[dict]:
     """Return all security events for a given request."""
-    emitter = get_event_emitter()
-    events = emitter.get_events(request_id)
+    observability.start_request(request_id)
+    events = observability.get_request_timeline(request_id).get('timeline', [])
     return [
         {
-            "event_id": e.event_id,
-            "event_type": e.event_type,
-            "timestamp": e.timestamp,
-            "decision": e.decision,
-            "risk_level": e.risk_level,
-            "metadata": e.metadata,
+            "event_id": e['event'],
+            "event_type": e['event'],
+            "timestamp": e['timestamp'],
+            "decision": e['decision'],
+            "risk_level": e['severity'],
+            "metadata": e['metadata'],
         }
         for e in events
     ]
@@ -132,16 +133,12 @@ async def chat_completions(
         raise HTTPException(status_code=503, detail="Proxy not initialised.")
 
     request_id = generate_request_id()
-    emitter = get_event_emitter()
+    observability.start_request(request_id)
     settings = get_settings()
     start_time = time.perf_counter()
 
     # ── Step 1: Emit REQUEST_RECEIVED ────────────────────────
-    emitter.create_and_emit(
-        request_id=request_id,
-        event_type=EventType.REQUEST_RECEIVED,
-        user_id=request.user,
-        metadata={"model": request.model, "message_count": len(request.messages)},
+    observability.record_event(EventType.REQUEST_RECEIVED, request_id, source="proxy", metadata={"model": request.model, "message_count": len(request.messages)},
     )
 
     context: dict[str, Any] = {
@@ -201,11 +198,7 @@ async def chat_completions(
             )
 
         # ── Step 4: Call LLM ─────────────────────────────────
-        emitter.create_and_emit(
-            request_id=request_id,
-            event_type=EventType.LLM_REQUEST,
-            user_id=request.user,
-            metadata={"provider": _llm_router.active_provider.provider_name},
+        observability.record_event(EventType.LLM_REQUEST_SENT, request_id, source="proxy", metadata={"provider": _llm_router.active_provider.provider_name},
         )
 
         try:
@@ -222,12 +215,7 @@ async def chat_completions(
             else:
                 llm_response = await generate_call
         except asyncio.TimeoutError:
-            emitter.create_and_emit(
-                request_id=request_id,
-                event_type=EventType.REQUEST_FAILED,
-                user_id=request.user,
-                metadata={"error_type": "TimeoutError"},
-            )
+            observability.record_llm_call(request_id, _llm_router.active_provider.provider_name, request.model, status="error", error_type="TimeoutError"); observability.finalize_request(request_id, status="failed", error_type="TimeoutError")
             raise HTTPException(
                 status_code=504,
                 detail={
@@ -238,12 +226,7 @@ async def chat_completions(
         except Exception as exc:
             # Never record str(exc): provider errors can contain URLs with
             # API keys or fragments of the request.
-            emitter.create_and_emit(
-                request_id=request_id,
-                event_type=EventType.REQUEST_FAILED,
-                user_id=request.user,
-                metadata={"error_type": type(exc).__name__},
-            )
+            observability.record_llm_call(request_id, _llm_router.active_provider.provider_name, request.model, status="error", error_type=type(exc).__name__); observability.finalize_request(request_id, status="failed", error_type=type(exc).__name__)
             raise HTTPException(
                 status_code=502,
                 detail={
@@ -254,16 +237,7 @@ async def chat_completions(
 
         latency_ms = round((time.perf_counter() - start_time) * 1000, 2)
 
-        emitter.create_and_emit(
-            request_id=request_id,
-            event_type=EventType.LLM_RESPONSE,
-            user_id=request.user,
-            metadata={
-                "provider": llm_response.provider,
-                "latency_ms": latency_ms,
-                "usage": llm_response.usage,
-            },
-        )
+        observability.record_llm_call(request_id, llm_response.provider, llm_response.model, llm_response.usage.get("prompt_tokens", 0), llm_response.usage.get("completion_tokens", 0), latency_ms, status="success")
 
         # ── Step 5: Optional de-tokenization ─────────────────
         # Restored text goes only into the HTTP response body; it is never
@@ -280,17 +254,7 @@ async def chat_completions(
             )
 
         # ── Step 6: Emit REQUEST_COMPLETED ───────────────────
-        emitter.create_and_emit(
-            request_id=request_id,
-            event_type=EventType.REQUEST_COMPLETED,
-            user_id=request.user,
-            decision="allow",
-            metadata={
-                "latency_ms": latency_ms,
-                "pipeline_ms": round(pipeline_ms, 2),
-                "redactions": redactions,
-            },
-        )
+        observability.finalize_request(request_id, status="completed", latency_ms=latency_ms, decision="allow")
 
         # ── Step 7: Return OpenAI-compatible response ────────
         return ChatCompletionResponse(
@@ -322,12 +286,7 @@ async def chat_completions(
             request_id,
             error_type,
         )
-        emitter.create_and_emit(
-            request_id=request_id,
-            event_type=EventType.REQUEST_FAILED,
-            user_id=request.user,
-            metadata={"error_type": error_type},
-        )
+        observability.finalize_request(request_id, status="failed", error_type=error_type)
         raise HTTPException(
             status_code=500,
             detail={
@@ -340,3 +299,6 @@ async def chat_completions(
         # block / failure, so raw values never linger in memory.
         if _placeholder_detector is not None:
             _placeholder_detector.clear_mapping(request_id)
+
+
+

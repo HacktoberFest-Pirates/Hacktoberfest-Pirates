@@ -1,49 +1,113 @@
-# AI Security Proxy - Observability & Audit (Person 3)
+# AI Security & Observability Proxy
 
-Records, aggregates and visualises everything the proxy does - **without ever storing raw prompts or PII**.
+This is an open-source AI Security & Observability Proxy for enterprise LLM deployments.
+It sits between your user application and an external LLM, protecting sensitive information before it leaves a trusted environment via Dynamic Canary Tokenization (reversible pseudonymization), detecting prompt injection, enforcing policies, and providing a clean dashboard for observability.
 
+## Features
+- **OpenAI-Compatible FastAPI Proxy**: Drop-in replacement for OpenAI endpoints.
+- **Privacy Engine**: Deterministic Regex and Format Validation (Aadhaar, PAN, etc.) combined with Gemma 4 contextual detection.
+- **Dynamic Canary Tokenization**: Replaces PII with request-scoped mapping vault tokens (e.g. `<PERSON_A81F2C>`) and restores them in the LLM response.
+- **Security Engine**: Prompt injection detection and policy enforcement.
+- **Observability Dashboard**: Streamlit dashboard showing real-time security events, total requests, blocks, and PII detected.
+
+## Architecture
+```mermaid
+flowchart TD
+    UserApp[User Application] -->|POST /v1/chat/completions| Proxy
+    subgraph AI Security Proxy
+        Proxy --> Parser[Request Parser]
+        Parser --> PII[PII Detector & Tokenizer]
+        PII --> Vault[(Mapping Vault)]
+        PII --> Sec[Security Engine]
+        Sec -->|Block| Error[403 Error]
+        Sec -->|Allow| GW[LiteLLM Gateway]
+    end
+    GW --> ExtLLM[External LLM]
+    ExtLLM --> ProxyRest[Response Inspector & Restorer]
+    ProxyRest -.-> Vault
+    ProxyRest --> Event[Observability Events]
+    ProxyRest --> UserApp
 ```
-Security modules ──events──▶ ObservabilityService ──▶ SQLite ──▶ Observability API (read-only) ──▶ Streamlit
-                              (validate+sanitise)      (SQLAlchemy)     /observability/*                (presentation only)
-```
 
-## Layout
-`backend/observability/` schemas · sanitize · event_bus · logger · repository · metrics · service · api · demo  
-`dashboard/` app.py · api_client.py · metrics.py · components/  
-`scripts/generate_demo_events.py` · `tests/observability/` · `docs/observability-integration.md`
+## Tech Stack
+- **Backend**: Python 3.11, FastAPI, Pydantic, LiteLLM
+- **Privacy/ML**: Regex, Gemma 4 (via transformers/torch)
+- **Frontend/Observability**: Streamlit, SQLite
 
-## Quick start
+## Setup Instructions
+### Docker (Recommended)
 ```bash
+docker-compose up --build
+```
+This starts the proxy on port `8000` and the dashboard on port `8501`.
+
+### Local Execution (No Docker)
+```bash
+python -m venv .venv
+source .venv/bin/activate  # or .venv\Scripts\activate on Windows
 pip install -r requirements.txt
-cp .env.example .env            # optional; export vars or use your env loader
-python scripts/generate_demo_events.py --reset      # creates ./observability.db (tables auto-created)
-uvicorn backend.observability.api:app --port 8001   # or include the router in the main app
-streamlit run dashboard/app.py                      # http://localhost:8501
-pytest                                              # 32 tests
+
+# Terminal 1: Proxy
+uvicorn app.main:app --reload --port 8000
+
+# Terminal 2: Dashboard
+streamlit run dashboard/app.py
 ```
 
-## Event schema
-`event_id, request_id, timestamp, event_type, source, severity, decision, category, confidence, message, metadata` -
-see `docs/observability-integration.md` for emit snippets for each team member.
+## Environment Variables
+- `APP_NAME`: Name of proxy.
+- `LLM_PROVIDER`: `mock` | `openai` | `gemini` | `ollama`
+- `MOCK_LLM`: `true` | `false`
+- `OPENAI_API_KEY`: API Key for OpenAI.
+- `GEMINI_API_KEY`: API Key for Google Gemini.
+- `POLICY_PII_ACTION`: `allow` | `block` | `redact`
+- `OBSERVABILITY_DB_URL`: SQLite connection string.
 
-## Database (SQLite via SQLAlchemy; swap with `OBSERVABILITY_DB_URL`)
-- `requests(request_id PK, timestamp, status, decision, model, provider, latency_ms, prompt/completion/total_tokens, pii_count, placeholder_count, injection_detected, error_type)`
-- `security_events(seq, event_id UNIQUE, request_id FK, timestamp, event_type, severity, source, category, confidence, decision, message, metadata_json)`
-- `llm_calls(id, request_id FK, timestamp, provider, model, prompt/completion/total_tokens, latency_ms, status, estimated_cost, error_type)`
-
-## API (read-only; filters: `limit, offset, start_time, end_time, event_type, severity, decision, model, provider, status`)
-`GET /observability/summary | /requests | /requests/{id} (timeline) | /events | /security | /metrics | /health`
-
-```json
-GET /observability/summary
-{"total_requests":150,"blocked_requests":14,"pii_detections":189,"prompt_injection_detections":22,"avg_latency_ms":1010.92,"total_tokens":157487}
+### Configuring Gemma 4
+To use Gemma 4 for contextual detection, set:
+```env
+GEMMA_ENABLED=true
+GEMMA_MODEL_PATH=google/gemma-4b
+GEMMA_DEVICE=auto
 ```
 
-## Privacy guarantees
-Counts/categories/decisions/ids only. Content-bearing keys are dropped and PII-like strings scrubbed before
-persistence or logging; events are validated (strict enum/severity/id format); event IDs are server-generated;
-all SQL is ORM-parameterised; the dashboard has a second display filter. `OBSERVABILITY_DEVELOPMENT_ONLY_STORE_CONTENT`
-exists for local debugging only and is reported by `/observability/health`.
+### Configuring External LLM
+To point the proxy to OpenAI, update your `.env`:
+```env
+LLM_PROVIDER=openai
+MOCK_LLM=false
+OPENAI_API_KEY=sk-...
+```
 
-## Retention
-`OBSERVABILITY_RETENTION_DAYS` (default 7). Call `get_service().purge_expired()` (e.g. on startup or from a cron/scheduler).
+## Usage
+Simply point your existing OpenAI SDK to the proxy:
+```python
+import openai
+
+client = openai.OpenAI(
+    base_url="http://localhost:8000/v1",
+    api_key="proxy-key" # API key not required for local proxy testing
+)
+
+response = client.chat.completions.create(
+    model="demo-model",
+    messages=[{"role": "user", "content": "My Aadhaar is 1234 5678 9012"}]
+)
+print(response.choices[0].message.content)
+```
+
+## Testing
+Run the automated test suite:
+```bash
+PYTHONPATH=. pytest tests/
+```
+
+## Security Assumptions & Known Limitations
+- **In-memory vault**: Mappings are currently held in memory. In a multi-worker production environment, this requires a Redis adapter.
+- **Regex Limitations**: Regex alone may produce false positives/negatives. Gemma 4 provides contextual fallback but requires compute.
+- **LLM Hallucinations**: If the LLM generates tokens that were not in the prompt, the restorer safely ignores them.
+
+## Future Improvements
+- Redis mapping vault for horizontal scaling.
+- Async parallelization of security modules.
+- Deeper custom policy builder UI.

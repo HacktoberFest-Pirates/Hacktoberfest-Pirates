@@ -1,8 +1,8 @@
 import pytest
 
-from backend.observability.config import Settings
-from backend.observability.repository import ObservabilityRepository
-from backend.observability.service import ObservabilityService, set_service
+from app.observability.config import Settings
+from app.observability.repository import ObservabilityRepository
+from app.observability.service import ObservabilityService, set_service
 
 
 @pytest.fixture()

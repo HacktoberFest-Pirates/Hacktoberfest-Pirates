@@ -3,7 +3,7 @@
 Modules **emit events**; they never touch the database or dashboard.
 
 ```python
-from backend.observability.service import observability   # lazy singleton, safe to import anywhere
+from app.observability.service import observability   # lazy singleton, safe to import anywhere
 ```
 
 All calls are **non-blocking** (background writer) and **never raise** into the caller (invalid events are
@@ -50,10 +50,10 @@ observability.finalize_request(request_id, "failed", error_type="PROVIDER_TIMEOU
 
 ## Mounting the API in the main FastAPI app (optional, one line)
 ```python
-from backend.observability.api import router as observability_router
+from app.observability.api import router as observability_router
 app.include_router(observability_router)
 ```
-Or run standalone: `uvicorn backend.observability.api:app --port 8001`.
+Or run standalone: `uvicorn app.observability.api:app --port 8001`.
 
 ## Event fields
 `event_type` (enum below), `request_id`, `source`, `severity` (`low|medium|high|critical`; defaulted per type),

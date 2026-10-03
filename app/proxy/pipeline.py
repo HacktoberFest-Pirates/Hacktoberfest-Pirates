@@ -23,7 +23,8 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 from app.security.interfaces import Decision, SecurityModule, SecurityResult
-from app.observability.events import EventType, get_event_emitter
+from app.observability.schemas import EventType
+from app.observability.service import observability
 
 logger = logging.getLogger(__name__)
 
@@ -121,7 +122,7 @@ class SecurityPipeline:
             A PipelineResult with the final verdict and (optionally)
             sanitized content.
         """
-        emitter = get_event_emitter()
+        
         request_id = context.get("request_id", "unknown")
         start = time.perf_counter()
 
@@ -134,17 +135,10 @@ class SecurityPipeline:
 
             # ── BLOCK: short-circuit immediately ─────────────
             if result.decision == Decision.BLOCK:
-                emitter.create_and_emit(
-                    request_id=request_id,
-                    event_type=EventType.REQUEST_BLOCKED,
-                    user_id=context.get("user_id"),
-                    decision="block",
-                    risk_level="high",
-                    metadata={
+                observability.record_event(EventType.REQUEST_BLOCKED, request_id, source=module.name, decision="block", severity="high", metadata={
                         "blocked_by": module.name,
                         "reason": result.reason,
-                    },
-                )
+                    })
                 elapsed = (time.perf_counter() - start) * 1000
                 return PipelineResult(
                     decision=Decision.BLOCK,
@@ -156,15 +150,10 @@ class SecurityPipeline:
             # ── MODIFY: feed sanitized text downstream ───────
             if result.decision == Decision.MODIFY and result.modified_content:
                 current_content = result.modified_content
-                emitter.create_and_emit(
-                    request_id=request_id,
-                    event_type=EventType.REQUEST_SANITIZED,
-                    decision="modify",
-                    metadata={
+                observability.record_event(EventType.RESPONSE_SANITIZED, request_id, source=module.name, decision="modify", metadata={
                         "module": module.name,
                         "reason": result.reason,
-                    },
-                )
+                    })
 
         elapsed = (time.perf_counter() - start) * 1000
         return PipelineResult(
@@ -173,3 +162,4 @@ class SecurityPipeline:
             results=results,
             duration_ms=round(elapsed, 2),
         )
+

@@ -45,8 +45,8 @@ with st.sidebar:
     interval = st.slider("Every (seconds)", 5, 60, 10, disabled=not auto)
     if os.getenv("OBSERVABILITY_DEMO_MODE", "").lower() in {"1", "true", "yes"}:
         if st.button("Generate demo data", width="stretch"):
-            from backend.observability.demo import generate_demo_data
-            from backend.observability.service import get_service
+            from app.observability.demo import generate_demo_data
+            from app.observability.service import get_service
             generate_demo_data(get_service(), 100)
             st.rerun()
     try:
