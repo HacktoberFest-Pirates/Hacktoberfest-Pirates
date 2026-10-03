@@ -3,6 +3,7 @@ from app.privacy.engine import create_privacy_engine
 def test_full_flow():
     engine = create_privacy_engine()
     # Let's override to use mock for tokens & gemma for predictable tests
+    engine.detector.gemma_detector.enabled = True
     engine.detector.gemma_detector.use_mock = True
     engine.sanitizer.use_mock_tokens = True
     
