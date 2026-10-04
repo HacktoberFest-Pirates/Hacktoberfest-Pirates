@@ -45,6 +45,7 @@ class ChatCompletionResponse(BaseModel):
     model: str
     choices: list[Choice]
     usage: Usage = Field(default_factory=Usage)
+    debug_sanitized_prompt: Optional[str] = None
 
 
 # ── Health / Readiness ───────────────────────────────────────
@@ -60,3 +61,4 @@ class ReadyResponse(BaseModel):
     """Readiness probe response with subsystem checks."""
     status: str
     checks: dict
+

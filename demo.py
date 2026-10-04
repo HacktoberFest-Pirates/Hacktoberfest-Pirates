@@ -9,7 +9,7 @@ def send_request(name, prompt):
     print(f"User Prompt: {prompt}")
     
     payload = {
-        "model": "gpt-3.5-turbo", # Note: Routed to Gemini/Mock behind the scenes based on your .env
+        "model": "gemini-2.5-flash", # Note: Routed to Gemini/Mock behind the scenes based on your .env
         "messages": [{"role": "user", "content": prompt}]
     }
     

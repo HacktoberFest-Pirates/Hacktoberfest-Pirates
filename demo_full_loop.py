@@ -27,6 +27,8 @@ def run_test(name, prompt, restore=False):
         
         if response.status_code == 200:
             data = response.json()
+            if 'debug_sanitized_prompt' in data and data['debug_sanitized_prompt']:
+                print(f"Sanitized Prompt (Sent to Gemini): {data['debug_sanitized_prompt']}")
             print(f"Response ({latency:.2f}s): {data['choices'][0]['message']['content']}")
         else:
             print(f"Error ({response.status_code}): {response.text}")
@@ -46,3 +48,4 @@ if __name__ == "__main__":
         "Summarize this employee record: Email is rahul.sharma@gmail.com, Aadhaar is 4521 8899 1005, and Phone is 9876543210.",
         restore=True
     )
+

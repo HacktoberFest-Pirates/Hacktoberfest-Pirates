@@ -274,6 +274,7 @@ async def chat_completions(
                 completion_tokens=llm_response.usage.get("completion_tokens", 0),
                 total_tokens=llm_response.usage.get("total_tokens", 0),
             ),
+            debug_sanitized_prompt=sanitized_messages[-1]["content"] if sanitized_messages else None,
         )
 
     except HTTPException:
@@ -299,6 +300,7 @@ async def chat_completions(
         # block / failure, so raw values never linger in memory.
         if _placeholder_detector is not None:
             _placeholder_detector.clear_mapping(request_id)
+
 
 
 
