@@ -57,7 +57,7 @@ class PromptInjectionStubDetector(SecurityModule):
 
                 # Emit audit event
                 
-                observability.record_event(EventType.PROMPT_INJECTION_DETECTED, request_id, source=self.name, severity="high", metadata=metadata)
+                observability.record_event(EventType.PROMPT_INJECTION_DETECTED, request_id, source=self.name, severity="high", metadata={"rule": "instruction_override"})
 
                 # Register detection in shared context for PolicyEngine
                 context.setdefault("detections", []).append({
@@ -81,5 +81,6 @@ class PromptInjectionStubDetector(SecurityModule):
             module_name=self.name,
             reason="No prompt injection patterns detected.",
         )
+
 
 
