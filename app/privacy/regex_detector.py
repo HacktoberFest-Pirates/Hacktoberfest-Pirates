@@ -14,12 +14,12 @@ class RegexDetector:
         # Compiled regex patterns
         self.patterns = {
             EntityType.EMAIL: re.compile(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'),
-            EntityType.PHONE: re.compile(r'\b(?:\+?\d{1,3}[\s-]?)?\(?\d{3}\)?[\s-]?\d{3}[\s-]?\d{4}\b'),
+            EntityType.PHONE: re.compile(r'\b(?:\+?\d{1,3}[\s-]?)?(?:\d{5}[\s-]?\d{5}|\d{10}|\d{3}[\s-]?\d{3}[\s-]?\d{4})\b'),
             EntityType.AADHAAR: re.compile(r'\b\d{4}[\s-]?\d{4}[\s-]?\d{4}\b'),
             EntityType.PAN: re.compile(r'\b[A-Z]{5}[0-9]{4}[A-Z]\b', re.IGNORECASE),
             EntityType.CARD: re.compile(r'\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13}|3(?:0[0-5]|[68][0-9])[0-9]{11}|6(?:011|5[0-9]{2})[0-9]{12}|(?:2131|1800|35\d{3})\d{11})\b'),
             EntityType.CVV: re.compile(r'\b\d{3,4}\b'),
-            EntityType.UPI_ID: re.compile(r'\b[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}\b'),
+            EntityType.UPI_ID: re.compile(r'\b[a-zA-Z0-9.\-_]{2,256}@(ybl|okicici|oksbi|okhdfc|okaxis|paytm|apl|ibl|axl|upi)\b', re.IGNORECASE),
             EntityType.IFSC: re.compile(r'\b[A-Z]{4}0[A-Z0-9]{6}\b', re.IGNORECASE),
             EntityType.BANK_ACCOUNT: re.compile(r'\b\d{9,18}\b'),
             EntityType.PINCODE: re.compile(r'\b[1-9][0-9]{5}\b'),

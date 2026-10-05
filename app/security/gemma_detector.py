@@ -26,18 +26,17 @@ class GemmaContextDetector(SecurityModule):
         request_id = context.get("request_id", "unknown")
         
         system_prompt = (
-            "You are a strict Data Loss Prevention (DLP) security guard. Your ONLY job is to detect INSIDER TRADING and MERGER/ACQUISITION secrets.\n\n"
-            "RULES:\n"
-            "1. If the text mentions acquiring companies, project code names (like 'Project Titan'), or unreleased financial numbers, output exactly the word 'BLOCK'.\n"
-            "2. DO NOT BLOCK normal candidate data, emails, PAN numbers, or casual business requests. Our regex engine handles those. You must output exactly the word 'ALLOW' for these.\n"
-            "3. DO NOT BLOCK instructions to ignore prompts (like 'ignore previous instructions'). You must output exactly the word 'ALLOW' for those.\n\n"
-            "Respond ONLY with 'BLOCK' or 'ALLOW'. Do not explain.\n\n"
-            f"Employee Text:\n{content}"
+            "Does the following text explicitly mention 'Acquisition', 'Merger', 'Acquiring', or 'Project Titan'?\n"
+            "If YES, output exactly BLOCK.\n"
+            "If NO, output exactly ALLOW.\n"
+            "Respond with only one word.\n\n"
+            f"Text:\n{content}"
         )
 
         payload = {
             "model": self.model,
             "prompt": system_prompt,
+            "system": "You are a DLP Guard. Follow instructions exactly.",
             "stream": False,
             "options": {
                 "temperature": 0.0,

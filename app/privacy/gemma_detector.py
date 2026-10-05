@@ -71,7 +71,7 @@ Text:
 
     def _mock_detect(self, text: str) -> List[PIIEntity]:
         entities = []
-        names_to_mock = ["Rahul Sharma", "Rahul", "Vedant Gophane", "Vedant"]
+        names_to_mock = ["Rahul Sharma", "Rahul", "Vedant Gophane", "Vedant", "Alice B. Henderson", "Alice", "John D. Smith", "John", "Arjun Kapoor", "Arjun", "Priya Desai", "Amit Patel"]
         for name in names_to_mock:
             if name.lower() in text.lower():
                 try:
