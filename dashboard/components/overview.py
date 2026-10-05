@@ -18,7 +18,7 @@ def top_metrics(summary: dict, sec: dict) -> None:
 
 def security_overview(req_df, m: dict, sec: dict) -> None:
     st.subheader("Security overview")
-    a, b, c = st.columns([2, 1, 1])
+    a, b = st.columns([2, 1])
     vol = dm.volume_over_time(req_df)
     if vol.empty:
         a.info("No requests in this selection.")
@@ -28,10 +28,4 @@ def security_overview(req_df, m: dict, sec: dict) -> None:
     dec = dm.counts_df(m["requests_by_decision"], "decision")
     if not dec.empty:
         b.plotly_chart(px.pie(dec, names="decision", values="requests", hole=.55, title="Decisions"),
-                       width="stretch")
-    pii = dm.pii_by_category(sec)
-    if pii.empty:
-        c.info("No PII detections.")
-    else:
-        c.plotly_chart(px.bar(pii, x="detections", y="category", orientation="h", title="PII by category"),
                        width="stretch")

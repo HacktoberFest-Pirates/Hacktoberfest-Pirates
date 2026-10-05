@@ -42,13 +42,23 @@ def requests_df(items: list[dict]) -> pd.DataFrame:
             "injection_detected", "error_type"]
     df = pd.DataFrame(items, columns=cols)
     df["timestamp"] = pd.to_datetime(df["timestamp"])
+    if not df.empty:
+        if df["timestamp"].dt.tz is not None:
+            df["timestamp"] = df["timestamp"].dt.tz_convert("Asia/Kolkata").dt.tz_localize(None)
+        else:
+            df["timestamp"] = df["timestamp"] + pd.Timedelta(hours=5, minutes=30)
     return df
 
 
 def events_df(items: list[dict]) -> pd.DataFrame:
-    cols = ["timestamp", "request_id", "event_type", "severity", "source", "category", "decision", "confidence"]
+    cols = ["timestamp", "request_id", "event_type", "severity", "source", "category", "decision", "confidence", "metadata"]
     df = pd.DataFrame(items, columns=cols)
     df["timestamp"] = pd.to_datetime(df["timestamp"])
+    if not df.empty:
+        if df["timestamp"].dt.tz is not None:
+            df["timestamp"] = df["timestamp"].dt.tz_convert("Asia/Kolkata").dt.tz_localize(None)
+        else:
+            df["timestamp"] = df["timestamp"] + pd.Timedelta(hours=5, minutes=30)
     return df
 
 
@@ -97,3 +107,4 @@ def style_severity(severity: str) -> str:
 
 def fmt_tokens(n: float) -> str:
     return f"{n/1_000_000:.1f}M" if n >= 1e6 else f"{n/1000:.1f}K" if n >= 1000 else str(int(n))
+

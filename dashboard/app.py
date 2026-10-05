@@ -74,7 +74,7 @@ overview.top_metrics(summary, sec)
 overview.security_overview(req_df, m, sec)
 security.threat_activity(ev_df, sec)
 llm_usage.llm_usage(req_df, m)
-req_ui.recent_requests(req_df)
+req_ui.recent_requests(req_df, ev_df)
 
 rid = req_ui.request_selector(req_df)
 if rid:

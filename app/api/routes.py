@@ -138,7 +138,7 @@ async def chat_completions(
     start_time = time.perf_counter()
 
     # ── Step 1: Emit REQUEST_RECEIVED ────────────────────────
-    observability.record_event(EventType.REQUEST_RECEIVED, request_id, source="proxy", metadata={"model": request.model, "message_count": len(request.messages)},
+    observability.record_event(EventType.REQUEST_RECEIVED, request_id, source="proxy", metadata={"model": request.model, "message_count": len(request.messages), "original_content": request.messages[-1].content if request.messages else ""},
     )
 
     context: dict[str, Any] = {
@@ -198,7 +198,7 @@ async def chat_completions(
             )
 
         # ── Step 4: Call LLM ─────────────────────────────────
-        observability.record_event(EventType.LLM_REQUEST_SENT, request_id, source="proxy", metadata={"provider": _llm_router.active_provider.provider_name},
+        observability.record_event(EventType.LLM_REQUEST_SENT, request_id, source="proxy", metadata={"provider": _llm_router.active_provider.provider_name, "sanitized_content": sanitized_messages[-1]["content"] if sanitized_messages else ""},
         )
 
         try:
@@ -274,7 +274,8 @@ async def chat_completions(
                 completion_tokens=llm_response.usage.get("completion_tokens", 0),
                 total_tokens=llm_response.usage.get("total_tokens", 0),
             ),
-            debug_sanitized_prompt=sanitized_messages[-1]["content"] if sanitized_messages else None,
+            sanitized_prompt=sanitized_messages[-1]["content"] if sanitized_messages else None,
+            entities=context.get("detections", []),
         )
 
     except HTTPException:

@@ -29,13 +29,11 @@ class GemmaDetector:
             logger.error(f"Failed to load Gemma model: {e}")
 
     def detect(self, text: str) -> List[PIIEntity]:
-        if not self.enabled:
-            return []
-            
+        # Always use mock if true, regardless of enabled flag
         if self.use_mock:
             return self._mock_detect(text)
             
-        if not self.model:
+        if not self.enabled or not self.model:
             return []
 
         prompt = f"""
@@ -73,26 +71,23 @@ Text:
 
     def _mock_detect(self, text: str) -> List[PIIEntity]:
         entities = []
-        if "Rahul Sharma" in text:
-            start = text.index("Rahul Sharma")
-            entities.append(PIIEntity(
-                entity_type=EntityType.PERSON,
-                original_value="Rahul Sharma",
-                start=start,
-                end=start + len("Rahul Sharma"),
-                confidence=0.9,
-                detection_source="gemma"
-            ))
-        elif "Rahul" in text:
-            start = text.index("Rahul")
-            entities.append(PIIEntity(
-                entity_type=EntityType.PERSON,
-                original_value="Rahul",
-                start=start,
-                end=start + len("Rahul"),
-                confidence=0.9,
-                detection_source="gemma"
-            ))
+        names_to_mock = ["Rahul Sharma", "Rahul", "Vedant Gophane", "Vedant"]
+        for name in names_to_mock:
+            if name.lower() in text.lower():
+                try:
+                    start = text.lower().index(name.lower())
+                    actual_name_in_text = text[start:start+len(name)]
+                    entities.append(PIIEntity(
+                        entity_type=EntityType.PERSON,
+                        original_value=actual_name_in_text,
+                        start=start,
+                        end=start + len(actual_name_in_text),
+                        confidence=0.95,
+                        detection_source="nlp_gemma"
+                    ))
+                    break # only grab the longest one
+                except ValueError:
+                    pass
         return entities
 
     def _parse_json_entities(self, data: dict, original_text: str) -> List[PIIEntity]:

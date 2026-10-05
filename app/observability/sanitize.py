@@ -19,7 +19,7 @@ _PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ("IP_ADDRESS", re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")),
     ("SECRET", re.compile(r"\b[A-Za-z0-9+/_-]{32,}={0,2}\b")),
 ]
-MAX_STR = 200
+MAX_STR = 1000
 MAX_DEPTH = 3
 MAX_ITEMS = 50
 

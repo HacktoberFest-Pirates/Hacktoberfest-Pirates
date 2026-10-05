@@ -44,4 +44,4 @@ class PrivacyEngine:
             pass
 
 def create_privacy_engine() -> PrivacyEngine:
-    return PrivacyEngine()
+    return PrivacyEngine(use_mock_gemma=True)

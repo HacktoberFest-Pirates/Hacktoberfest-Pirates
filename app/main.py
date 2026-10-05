@@ -104,6 +104,10 @@ def create_app() -> FastAPI:
     if settings.ENABLE_STUB_DETECTORS:
         detectors.append(PrivacySecurityModule())          # Privacy Engine for PII/secret redaction
         detectors.append(PromptInjectionStubDetector())  # Stub injection detector
+        
+        # Add Gemma 4 Contextual DLP Guard
+        from app.security.gemma_detector import GemmaContextDetector
+        detectors.append(GemmaContextDetector())
 
     # Teammates' modules (set EXTRA_SECURITY_MODULES, no core edits needed)
     detectors.extend(_load_extra_modules(settings.EXTRA_SECURITY_MODULES))

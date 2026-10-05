@@ -44,7 +44,7 @@ class Settings(BaseSettings):
     #   True  = fail closed (request is blocked; recommended for production)
     SECURITY_FAIL_CLOSED: bool = False
     # Max seconds a single security module may take (0 disables the limit).
-    SECURITY_MODULE_TIMEOUT_S: float = 5.0
+    SECURITY_MODULE_TIMEOUT_S: float = 15.0
     # Max seconds to wait for the upstream LLM (0 disables the limit).
     LLM_TIMEOUT_S: float = 60.0
 
@@ -67,3 +67,4 @@ class Settings(BaseSettings):
 def get_settings() -> Settings:
     """Return a cached Settings instance."""
     return Settings()
+

@@ -45,7 +45,8 @@ class ChatCompletionResponse(BaseModel):
     model: str
     choices: list[Choice]
     usage: Usage = Field(default_factory=Usage)
-    debug_sanitized_prompt: Optional[str] = None
+    sanitized_prompt: Optional[str] = None
+    entities: Optional[list] = None
 
 
 # ── Health / Readiness ───────────────────────────────────────

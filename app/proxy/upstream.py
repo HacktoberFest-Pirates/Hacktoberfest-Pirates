@@ -87,7 +87,7 @@ class OpenAIProvider(LLMProvider):
         }
         payload = {"model": model, "messages": messages, **kwargs}
 
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        async with httpx.AsyncClient(timeout=90.0) as client:
             resp = await client.post(url, headers=headers, json=payload)
             resp.raise_for_status()
             data = resp.json()
@@ -154,9 +154,15 @@ class GeminiProvider(LLMProvider):
         )
         payload = {"contents": contents}
 
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            resp = await client.post(url, json=payload)
-            resp.raise_for_status()
+        import asyncio
+        async with httpx.AsyncClient(timeout=90.0) as client:
+            for attempt in range(3):
+                resp = await client.post(url, json=payload)
+                if resp.status_code in {503, 429, 500} and attempt < 2:
+                    await asyncio.sleep(2 * (attempt + 1))
+                    continue
+                resp.raise_for_status()
+                break
             data = resp.json()
 
         text = (
@@ -237,3 +243,4 @@ class OllamaProvider(LLMProvider):
                 return resp.status_code == 200
         except Exception:
             return False
+
