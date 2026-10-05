@@ -3,50 +3,50 @@
 import pytest
 
 from app.security.interfaces import Decision, SecurityResult
-from app.privacy.placeholder import PlaceholderDetector
+from app.privacy.adapter import PrivacySecurityModule
 from app.security.policy import PolicyEngine
 from app.security.prompt_injection import PromptInjectionStubDetector
 
 
-# ── PlaceholderDetector ──────────────────────────────────────
+# ── PrivacySecurityModule ──────────────────────────────────────
 
 @pytest.mark.asyncio
 async def test_placeholder_detects_email():
-    detector = PlaceholderDetector()
+    detector = PrivacySecurityModule()
     result = await detector.inspect(
         "Contact me at alice@example.com",
         {"request_id": "req_test1"},
     )
     assert result.decision == Decision.MODIFY
-    assert "<EMAIL_001>" in result.modified_content
+    assert "<EMAIL_" in result.modified_content
     assert "alice@example.com" not in result.modified_content
 
 
 @pytest.mark.asyncio
 async def test_placeholder_detects_phone():
-    detector = PlaceholderDetector()
+    detector = PrivacySecurityModule()
     result = await detector.inspect(
         "Call me at 9876543210",
         {"request_id": "req_test2"},
     )
     assert result.decision == Decision.MODIFY
-    assert "<PHONE_001>" in result.modified_content
+    assert "<PHONE_" in result.modified_content
 
 
 @pytest.mark.asyncio
 async def test_placeholder_detects_secret():
-    detector = PlaceholderDetector()
+    detector = PrivacySecurityModule()
     result = await detector.inspect(
-        "My key is sk-abc123xyz789",
+        "My key is sk_abc123xyz789abc123xyz789",
         {"request_id": "req_test3"},
     )
     assert result.decision == Decision.MODIFY
-    assert "<SECRET_001>" in result.modified_content
+    assert "<API_KEY_" in result.modified_content
 
 
 @pytest.mark.asyncio
 async def test_placeholder_clean_content():
-    detector = PlaceholderDetector()
+    detector = PrivacySecurityModule()
     result = await detector.inspect(
         "Hello world",
         {"request_id": "req_test4"},
@@ -56,22 +56,24 @@ async def test_placeholder_clean_content():
 
 @pytest.mark.asyncio
 async def test_placeholder_restore():
-    detector = PlaceholderDetector()
+    detector = PrivacySecurityModule()
     await detector.inspect(
         "Email is alice@example.com",
         {"request_id": "req_restore"},
     )
-    restored = detector.restore("req_restore", "Your email is <EMAIL_001>")
+    from app.privacy.vault import vault
+    token = list(vault.scopes["req_restore"].token_to_value.keys())[0]
+    restored = detector.restore("req_restore", f"Your email is {token}")
     assert restored == "Your email is alice@example.com"
 
 
 @pytest.mark.asyncio
 async def test_placeholder_multiple_detections():
-    detector = PlaceholderDetector()
+    detector = PrivacySecurityModule()
     content = "Email alice@example.com, phone 1234567890, key sk-mysecretkey123"
     result = await detector.inspect(content, {"request_id": "req_multi"})
     assert result.decision == Decision.MODIFY
-    assert result.metadata["redaction_count"] >= 2
+    assert result.metadata["detected_entity_count"] >= 2
 
 
 # ── PolicyEngine ─────────────────────────────────────────────

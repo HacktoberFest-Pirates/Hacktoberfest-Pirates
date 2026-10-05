@@ -9,6 +9,8 @@ class Settings(BaseSettings):
     """Central configuration for the AI Security Proxy."""
 
     # ── Application ──────────────────────────────────────────
+    ALLOWED_ORIGINS: str = "*"
+    GEMMA_ENABLED: bool = False
     APP_NAME: str = "ai-security-proxy"
     APP_VERSION: str = "0.1.0"
     DEBUG: bool = False

@@ -77,11 +77,20 @@ def create_app() -> FastAPI:
 
     application.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=[origin.strip() for origin in settings.ALLOWED_ORIGINS.split(",")],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    from fastapi.responses import FileResponse
+    import os
+    
+    @application.get("/", include_in_schema=False)
+    async def get_frontend():
+        if os.path.exists("frontend.html"):
+            return FileResponse("frontend.html")
+        return JSONResponse(status_code=404, content={"detail": "Frontend not found"})
 
     # FastAPI's default 422 body echoes the rejected input back, which can
     # contain secrets. Return only where/why validation failed.
@@ -105,9 +114,11 @@ def create_app() -> FastAPI:
         detectors.append(PrivacySecurityModule())          # Privacy Engine for PII/secret redaction
         detectors.append(PromptInjectionStubDetector())  # Stub injection detector
         
-        # Add Gemma 4 Contextual DLP Guard
-        from app.security.gemma_detector import GemmaContextDetector
-        detectors.append(GemmaContextDetector())
+        # Add Gemma Contextual DLP Guard (if enabled)
+        if settings.GEMMA_ENABLED:
+            from app.security.gemma_detector import GemmaContextDetector
+            # Use settings.OLLAMA_BASE_URL instead of hardcoding localhost
+            detectors.append(GemmaContextDetector(ollama_url=settings.OLLAMA_BASE_URL))
 
     # Teammates' modules (set EXTRA_SECURITY_MODULES, no core edits needed)
     detectors.extend(_load_extra_modules(settings.EXTRA_SECURITY_MODULES))
