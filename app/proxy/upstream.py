@@ -148,22 +148,30 @@ class GeminiProvider(LLMProvider):
                 "parts": [{"text": msg["content"]}],
             })
 
-        url = (
-            f"{self.BASE_URL}/models/{model}:generateContent"
-            f"?key={self.api_key}"
-        )
-        payload = {"contents": contents}
+        # Candidate models to try in order
+        candidate_models = [model]
+        for fallback in ["gemini-3.1-flash-lite", "gemini-3-flash-preview"]:
+            if fallback not in candidate_models:
+                candidate_models.append(fallback)
 
+        payload = {"contents": contents}
         import asyncio
-        async with httpx.AsyncClient(timeout=90.0) as client:
-            for attempt in range(3):
-                resp = await client.post(url, json=payload)
-                if resp.status_code in {503, 429, 500} and attempt < 2:
-                    await asyncio.sleep(2 * (attempt + 1))
-                    continue
-                resp.raise_for_status()
-                break
-            data = resp.json()
+
+        data = None
+        async with httpx.AsyncClient(timeout=45.0) as client:
+            for target_model in candidate_models:
+                url = f"{self.BASE_URL}/models/{target_model}:generateContent?key={self.api_key}"
+                try:
+                    resp = await client.post(url, json=payload)
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        break
+                    logger.warning(f"Gemini model {target_model} returned {resp.status_code}. Trying next candidate...")
+                except Exception as ex:
+                    logger.warning(f"Error querying {target_model}: {ex}")
+
+        if not data:
+            raise RuntimeError(f"All Gemini model candidates failed for request.")
 
         text = (
             data.get("candidates", [{}])[0]

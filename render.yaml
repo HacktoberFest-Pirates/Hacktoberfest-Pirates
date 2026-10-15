@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: ai-security-proxy
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: APP_NAME
+        value: ai-security-proxy
+      - key: LLM_PROVIDER
+        value: gemini
+      - key: MOCK_LLM
+        value: "false"
+      - key: GEMMA_ENABLED
+        value: "true"
+      - key: POLICY_PII_ACTION
+        value: redact
+      - key: POLICY_SECRETS_ACTION
+        value: redact
+      - key: POLICY_PROMPT_INJECTION_ACTION
+        value: block
+      - key: GEMINI_API_KEY
+        sync: false
